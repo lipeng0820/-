@@ -1,0 +1,142 @@
+import SwiftUI
+
+struct ContentView: View {
+    @State private var showStartButton = true
+    @State private var numbers = [Int]()
+    @State private var positions = [CGPoint]()
+    @State private var startTime: Date?
+    @State private var endTime: Date?
+    @State private var currentNumber = 0
+    @State private var gameOver = false
+    @State private var showOverlay = false
+    @State private var blockColors: [Color] = Array(repeating: .white, count: 10)
+
+
+    private let gridSize = 10
+    private let maxRandomAttempts = 100
+
+    var body: some View {
+        ZStack {
+            Color.black.edgesIgnoringSafeArea(.all) // 添加这行代码
+            
+            if showStartButton {
+                Circle()
+                    .frame(width: 60, height: 60)
+                    .foregroundColor(.white)
+                    .padding(.bottom, 40)
+                    .padding(.trailing,600)
+                    .onTapGesture {
+                        startGame()
+                    }
+                    .position(x: UIScreen.main.bounds.width - 30, y: UIScreen.main.bounds.height - 30)
+            } else {
+                ForEach(0..<gridSize, id: \.self) { index in
+                    let position = positions[index]
+                    let number = numbers[index]
+                    let color = getColor(for: number)
+
+                    ZStack {
+                        Text("\(number)")
+                            .font(.system(size: 60))
+                            .foregroundColor(color)
+
+                        if showOverlay && number >= currentNumber {
+                            RoundedRectangle(cornerRadius: 0)
+                                .fill(blockColors[number])
+                                .frame(width: 60, height: 60)
+                        }
+
+                    }
+                    .position(position)
+                    .onTapGesture {
+                        handleTap(on: number)
+                    }
+                }
+            }
+        }.edgesIgnoringSafeArea(.all)
+    }
+
+    private func startGame() {
+        showStartButton = false
+        startTime = Date()
+        numbers = Array(0..<gridSize).shuffled()
+        positions = generateRandomPositions()
+        currentNumber = 0
+        blockColors = Array(repeating: .white, count: gridSize)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            showOverlay = true
+        }
+    }
+
+    private func endGame() {
+        endTime = Date()
+        gameOver = true
+        showOverlay = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            showStartButton = true
+            gameOver = false
+        }
+    }
+
+    private func handleTap(on number: Int) {
+        if number == currentNumber {
+            blockColors[number] = .black
+            currentNumber += 1
+            if currentNumber == gridSize {
+                endGame()
+            }
+        } else {
+            blockColors[number] = .red
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                blockColors[number] = .white
+                showStartButton = true
+                showOverlay = false
+            }
+        }
+    }
+
+
+    private func getColor(for number: Int) -> Color {
+        if gameOver && number != currentNumber {
+            return .white
+        }
+        return number < currentNumber ? .black : .white
+    }
+
+    private func generateRandomPositions() -> [CGPoint] {
+        var positions = [CGPoint]()
+        for _ in 0..<gridSize {
+            var attempts = 0
+            var position: CGPoint
+            repeat {
+                position = randomPosition()
+                attempts += 1
+            } while !isPositionValid(position, in: positions) && attempts < maxRandomAttempts
+            positions.append(position)
+        }
+        return positions
+    }
+
+    private func randomPosition() -> CGPoint {
+        let x = CGFloat.random(in: 0..<UIScreen.main.bounds.width)
+        let y = CGFloat.random(in: 0..<UIScreen.main.bounds.height)
+        return CGPoint(x: x, y: y)
+    }
+
+    private func isPositionValid(_ position: CGPoint, in existingPositions: [CGPoint]) -> Bool {
+        let minDistance: CGFloat = 50
+        for existingPosition in existingPositions {
+            let distance = sqrt(pow(position.x - existingPosition.x, 2) + pow(position.y - existingPosition.y, 2))
+            if distance < minDistance {
+                return false
+            }
+        }
+        return true
+    }
+}
+
+struct ContentView_Previews: PreviewProvider {
+static var previews: some View {
+ContentView()
+}
+}

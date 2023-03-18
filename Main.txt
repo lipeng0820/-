@@ -1,6 +1,8 @@
 import SwiftUI
 import AVFoundation
 import CoreHaptics
+import PhotosUI
+import Photos
 
 
 struct ContentView: View {
@@ -13,7 +15,9 @@ struct ContentView: View {
     @State private var gameOver = false
     @State private var showOverlay = false
     @State private var blockColors: [Color] = Array(repeating: .white, count: 10)
-
+    @State private var elapsedTime: TimeInterval? // 新增用于显示耗时的变量
+    @State private var showResult = false
+    @State private var hideBlocks = false
 
 
     private let gridSize = 10
@@ -21,14 +25,14 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all) // 添加这行代码
+            Color.black.edgesIgnoringSafeArea(.all)
             
             if showStartButton {
                 Circle()
                     .frame(width: 60, height: 60)
                     .foregroundColor(.white)
                     .padding(.bottom, 40)
-                    .padding(.trailing,600)
+                    .padding(.trailing, 600)
                     .onTapGesture {
                         startGame()
                     }
@@ -40,14 +44,17 @@ struct ContentView: View {
                     let color = getColor(for: number)
 
                     ZStack {
-                        Text("\(number)")
-                            .font(.system(size: 60))
-                            .foregroundColor(color)
 
-                        if showOverlay && number >= currentNumber {
-                            RoundedRectangle(cornerRadius: 0)
-                                .fill(blockColors[number])
-                                .frame(width: 60, height: 60)
+                        if !hideBlocks {
+                            Text("\(number)")
+                                .font(.system(size: 60))
+                                .foregroundColor(color)
+
+                            if showOverlay && number >= currentNumber {
+                                RoundedRectangle(cornerRadius: 0)
+                                    .fill(blockColors[number])
+                                    .frame(width: 60, height: 60)
+                            }
                         }
 
                     }
@@ -57,10 +64,37 @@ struct ContentView: View {
                     }
                 }
             }
-        }.edgesIgnoringSafeArea(.all)
+
+            // 将此部分代码移动到这里
+            if showResult {
+                VStack {
+                    if let elapsedTime = elapsedTime {
+                        Text("本次用时：\(elapsedTime, specifier: "%.3f")秒")
+                            .font(.largeTitle)
+                            .foregroundColor(.white) // 设置字体颜色为白色
+                    }
+                    Button(action: {
+                        startGame()
+                    }, label: {
+                        Text("重置")
+                            .font(.title)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.red)
+                            .cornerRadius(10)
+                    })
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black)
+                .edgesIgnoringSafeArea(.all)
+            }
+        }
+        .edgesIgnoringSafeArea(.all)
     }
 
     private func startGame() {
+        hideBlocks = false
+        showResult = false
         showStartButton = false
         startTime = Date()
         numbers = Array(0..<gridSize).shuffled()
@@ -74,13 +108,17 @@ struct ContentView: View {
 
     private func endGame() {
         endTime = Date()
+        elapsedTime = endTime?.timeIntervalSince(startTime ?? Date())
         gameOver = true
         showOverlay = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            showStartButton = true
-            gameOver = false
+        hideBlocks = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            showResult = true
+            showStartButton = false
         }
     }
+
+
 
     private func handleTap(on number: Int) {
         if !showOverlay {
@@ -194,9 +232,8 @@ struct ContentView: View {
         }
     }
 
-
 struct ContentView_Previews: PreviewProvider {
-static var previews: some View {
-ContentView()
-}
+    static var previews: some View {
+        ContentView()
+    }
 }

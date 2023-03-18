@@ -83,6 +83,10 @@ struct ContentView: View {
     }
 
     private func handleTap(on number: Int) {
+        if !showOverlay {
+            return // 如果 showOverlay 为 false，直接返回，不执行后续操作
+        }
+
         if number == currentNumber {
             blockColors[number] = .black
             currentNumber += 1
@@ -90,11 +94,12 @@ struct ContentView: View {
                 endGame()
             }
         } else {
+            blockColors[number] = .red
+            
             // 调用新增加的方法
             playTone()
             triggerHapticFeedback()
             
-            blockColors[number] = .red
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 blockColors[number] = .white
                 showStartButton = true
@@ -102,6 +107,7 @@ struct ContentView: View {
             }
         }
     }
+
 
 
 
@@ -128,13 +134,15 @@ struct ContentView: View {
     }
 
     private func randomPosition() -> CGPoint {
-        let x = CGFloat.random(in: 0..<UIScreen.main.bounds.width)
-        let y = CGFloat.random(in: 0..<UIScreen.main.bounds.height)
+        let screenwidth = UIScreen.main.bounds.width
+        let x = CGFloat.random(in: (screenwidth * 0.03)..<(screenwidth * (1 - 0.03)))
+        let screenHeight = UIScreen.main.bounds.height
+        let y = CGFloat.random(in: (screenHeight * 0.08)..<(screenHeight * (1 - 0.05)))
         return CGPoint(x: x, y: y)
     }
 
     private func isPositionValid(_ position: CGPoint, in existingPositions: [CGPoint]) -> Bool {
-        let minDistance: CGFloat = 50
+        let minDistance: CGFloat = 80
         for existingPosition in existingPositions {
             let distance = sqrt(pow(position.x - existingPosition.x, 2) + pow(position.y - existingPosition.y, 2))
             if distance < minDistance {

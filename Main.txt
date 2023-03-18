@@ -101,7 +101,7 @@ struct ContentView: View {
         positions = generateRandomPositions()
         currentNumber = 0
         blockColors = Array(repeating: .white, count: gridSize)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { //调整数字展示时间
             showOverlay = true
         }
     }
@@ -112,9 +112,11 @@ struct ContentView: View {
         gameOver = true
         showOverlay = false
         hideBlocks = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             showResult = true
             showStartButton = false
+            // 播放胜利音效
+            playTone(audioFilename: "victory")
         }
     }
 
@@ -128,16 +130,21 @@ struct ContentView: View {
         if number == currentNumber {
             blockColors[number] = .black
             currentNumber += 1
+            if showOverlay { // 添加这个条件检查
+                playTone(audioFilename: "press2") // 添加这一行，播放 press2.mp3 音效
+            }
             if currentNumber == gridSize {
                 endGame()
             }
         } else {
             blockColors[number] = .red
-            
+
             // 调用新增加的方法
-            playTone()
+            if showOverlay { // 添加这个条件检查
+                playTone(audioFilename: "wrong")
+            }
             triggerHapticFeedback()
-            
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 blockColors[number] = .white
                 showStartButton = true
@@ -145,6 +152,7 @@ struct ContentView: View {
             }
         }
     }
+
 
 
 
@@ -193,8 +201,8 @@ struct ContentView: View {
 
     private var audioPlayer: AVAudioPlayer?
 
-    private func playTone() {
-        guard let toneUrl = Bundle.main.url(forResource: "tone300Hz", withExtension: "mp3") else {
+    private func playTone(audioFilename: String) {
+        guard let toneUrl = Bundle.main.url(forResource: audioFilename, withExtension: "mp3") else {
             print("Failed to find the audio file")
             return
         }

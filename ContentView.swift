@@ -138,6 +138,7 @@ struct ContentView: View {
     
     private func showDifficultyMenu() {
         let alertController = UIAlertController(title: "选择难度", message: nil, preferredStyle: .actionSheet)
+            // ... 添加 UIAlertAction ...
 
         let easyAction = UIAlertAction(title: "过目不忘", style: .default) { _ in
             difficulty = 0.5
@@ -159,8 +160,13 @@ struct ContentView: View {
         alertController.addAction(cancelAction)
 
         // 此处需要获取到当前视图控制器以展示 alertController
-        if let window = UIApplication.shared.windows.first, let viewController = window.rootViewController {
-            viewController.present(alertController, animated: true, completion: nil)
+        // 获取当前活跃的 UIWindowScene
+        if let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+            // 获取关联的 UIWindow
+            if let window = windowScene.windows.first, let viewController = window.rootViewController {
+                // 在根视图控制器上展示 UIAlertController
+                viewController.present(alertController, animated: true, completion: nil)
+            }
         }
     }
     

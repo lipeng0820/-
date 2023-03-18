@@ -1,9 +1,6 @@
 import SwiftUI
 import AVFoundation
 import CoreHaptics
-import PhotosUI
-import Photos
-
 
 struct ContentView: View {
     @State private var showStartButton = true
@@ -20,7 +17,8 @@ struct ContentView: View {
     @State private var hideBlocks = false
     @State private var showAboutMe = false
     @StateObject private var motionDetector = MotionDetector()
-    
+    @State private var difficulty: TimeInterval = 2.0
+    @State private var showHowView = true
 
     private let gridSize = 10
     private let maxRandomAttempts = 100
@@ -29,14 +27,23 @@ struct ContentView: View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
             
+            if showHowView {
+                HowView(isPresented: $showHowView)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.3)))
+                    .zIndex(1)
+            }
+            
             if showStartButton {
                 Circle()
                     .frame(width: 60, height: 60)
                     .foregroundColor(.white)
                     .padding(.bottom, 40)
                     .padding(.trailing, 600)
-                    .onTapGesture {
+                    .onTapGesture(count: 1) { // 在此处添加 "count: 1" 参数
                         startGame()
+                    }
+                    .onLongPressGesture {
+                        showDifficultyMenu()
                     }
                     .position(x: UIScreen.main.bounds.width - 30, y: UIScreen.main.bounds.height - 30)
             } else {
@@ -115,6 +122,7 @@ struct ContentView: View {
 
     private func startGame() {
         hideBlocks = false
+        gameOver = false
         showResult = false
         showStartButton = false
         startTime = Date()
@@ -122,10 +130,40 @@ struct ContentView: View {
         positions = generateRandomPositions()
         currentNumber = 0
         blockColors = Array(repeating: .white, count: gridSize)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { //调整数字展示时间
+        DispatchQueue.main.asyncAfter(deadline: .now() + difficulty) { //难度设定
             showOverlay = true
         }
+
     }
+    
+    private func showDifficultyMenu() {
+        let alertController = UIAlertController(title: "选择难度", message: nil, preferredStyle: .actionSheet)
+
+        let easyAction = UIAlertAction(title: "过目不忘", style: .default) { _ in
+            difficulty = 0.5
+        }
+
+        let normalAction = UIAlertAction(title: "平凡人类", style: .default) { _ in
+            difficulty = 2.0
+        }
+
+        let hardAction = UIAlertAction(title: "死记硬背", style: .default) { _ in
+            difficulty = 10.0
+        }
+
+        let cancelAction = UIAlertAction(title: "取消", style: .cancel, handler: nil)
+
+        alertController.addAction(easyAction)
+        alertController.addAction(normalAction)
+        alertController.addAction(hardAction)
+        alertController.addAction(cancelAction)
+
+        // 此处需要获取到当前视图控制器以展示 alertController
+        if let window = UIApplication.shared.windows.first, let viewController = window.rootViewController {
+            viewController.present(alertController, animated: true, completion: nil)
+        }
+    }
+    
 
     private func endGame() {
         endTime = Date()

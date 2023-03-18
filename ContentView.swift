@@ -18,7 +18,9 @@ struct ContentView: View {
     @State private var elapsedTime: TimeInterval? // 新增用于显示耗时的变量
     @State private var showResult = false
     @State private var hideBlocks = false
-
+    @State private var showAboutMe = false
+    @StateObject private var motionDetector = MotionDetector()
+    
 
     private let gridSize = 10
     private let maxRandomAttempts = 100
@@ -88,8 +90,27 @@ struct ContentView: View {
                 .background(Color.black)
                 .edgesIgnoringSafeArea(.all)
             }
+            
+            if showAboutMe {
+                AboutMeView(isPresented: $showAboutMe)
+                    .transition(.move(edge: .bottom))
+                    .onChange(of: showAboutMe) { _ in
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            self.showAboutMe.toggle()
+                        }
+                    }
+            }
         }
         .edgesIgnoringSafeArea(.all)
+        .onAppear {
+            motionDetector.start()
+            motionDetector.shakeDetected = {
+                showAboutMe.toggle()
+            }
+        }
+        .onDisappear {
+            motionDetector.stop()
+        }
     }
 
     private func startGame() {

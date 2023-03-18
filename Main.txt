@@ -1,4 +1,7 @@
 import SwiftUI
+import AVFoundation
+import CoreHaptics
+
 
 struct ContentView: View {
     @State private var showStartButton = true
@@ -10,6 +13,7 @@ struct ContentView: View {
     @State private var gameOver = false
     @State private var showOverlay = false
     @State private var blockColors: [Color] = Array(repeating: .white, count: 10)
+
 
 
     private let gridSize = 10
@@ -86,6 +90,10 @@ struct ContentView: View {
                 endGame()
             }
         } else {
+            // 调用新增加的方法
+            playTone()
+            triggerHapticFeedback()
+            
             blockColors[number] = .red
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 blockColors[number] = .white
@@ -94,6 +102,8 @@ struct ContentView: View {
             }
         }
     }
+
+
 
 
     private func getColor(for number: Int) -> Color {
@@ -134,6 +144,48 @@ struct ContentView: View {
         return true
     }
 }
+
+    private var audioPlayer: AVAudioPlayer?
+
+    private func playTone() {
+        guard let toneUrl = Bundle.main.url(forResource: "tone300Hz", withExtension: "mp3") else {
+            print("Failed to find the audio file")
+            return
+        }
+
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+            try AVAudioSession.sharedInstance().setActive(true, options: [])
+
+            audioPlayer = try AVAudioPlayer(contentsOf: toneUrl)
+            audioPlayer?.play()
+        } catch {
+            print("Failed to play the audio file: \(error)")
+        }
+    }
+
+
+    private func triggerHapticFeedback() {
+        if #available(iOS 13.0, *) {
+            let hapticEngine = try? CHHapticEngine()
+            let hapticEvent = CHHapticEvent(eventType: .hapticTransient, parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.8),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 1)
+            ], relativeTime: 0)
+
+            if let hapticPattern = try? CHHapticPattern(events: [hapticEvent], parameters: []), let hapticPlayer = try? hapticEngine?.makePlayer(with: hapticPattern) {
+                try? hapticEngine?.start()
+                try? hapticPlayer.start(atTime: CHHapticTimeImmediate)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    hapticEngine?.stop()
+                }
+            }
+        } else {
+            let feedbackGenerator = UIImpactFeedbackGenerator(style: .heavy)
+            feedbackGenerator.impactOccurred()
+        }
+    }
+
 
 struct ContentView_Previews: PreviewProvider {
 static var previews: some View {
